@@ -93,9 +93,20 @@ static bool save_pgm(const Image* img, const char* path) {
     return true;
 }
 
-int main(void) {
-    Image img = load_pgm("lena_gray.pgm");
-    save_pgm(&img, "lene_gray_copy.pgm");
+int main(int argc, char* argv[]) {
+    char in_pgm_path[1024] = "lena_gray.pgm";
+    char out_pgm_path[1024] = "out.pgm";
+
+    if (argc == 2) {
+        strncpy(in_pgm_path, argv[1], sizeof(in_pgm_path));
+    }
+    if (argc == 3) {
+        strncpy(in_pgm_path, argv[1], sizeof(in_pgm_path));
+        strncpy(out_pgm_path, argv[2], sizeof(out_pgm_path));
+    }
+
+    Image img = load_pgm(in_pgm_path);
+    save_pgm(&img, out_pgm_path);
 
     return 0;
 }
