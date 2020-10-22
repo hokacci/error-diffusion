@@ -111,7 +111,11 @@ static Image convert_error_diffusion(const Image* img) {
         exit(1);
     }
     for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
+        for (int tx = 0; tx < width; ++tx) {
+            int x = tx;
+            if (y % 2 == 0) {
+                x = width - tx - 1;
+            }
             int f = bmp_to[y * width + x] + bmp_from[y * width + x];
             short d;
             if (f >= 128) {
@@ -122,7 +126,7 @@ static Image convert_error_diffusion(const Image* img) {
                 bmp_to[y * width + x] = 0;
             }
             for (int c = 0; c < RATIO_COUNT; ++c) {
-                int px = x + TDX[c];
+                int px = x - TDX[c] + (2 * TDX[c] * (y % 2));
                 int py = y + TDY[c];
                 if (px >= 0 && px < width && py >= 0 && py < height) {
                     bmp_to[py * width + px] += d * RATIO[c] / DENOMINATOR;
