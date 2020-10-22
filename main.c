@@ -93,6 +93,60 @@ static bool save_pgm(const Image* img, const char* path) {
     return true;
 }
 
+
+static Image convert_error_diffusion(const Image* img) {
+    static const int RATIO_COUNT = 4;
+    static const int TDX[] = {1, -1, 0, 1};
+    static const int TDY[] = {0,  1, 1, 1};
+    static const int RATIO[] = {7, 3, 5, 1};
+    static const int DENOMINATOR = 16;
+
+    int width = img->height;
+    int height = img->width;
+    uint8_t* bmp_from = img->data;
+    short* bmp_to = (short*)calloc(height * width, 4);
+
+    if (bmp_to == NULL) {
+        fprintf(stderr, "Failed memory allocation.\n");
+        exit(1);
+    }
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int f = bmp_to[y * width + x] + bmp_from[y * width + x];
+            short d;
+            if (f >= 128) {
+                d = f - 255;
+                bmp_to[y * width + x] = 255;
+            } else {
+                d = f;
+                bmp_to[y * width + x] = 0;
+            }
+            for (int c = 0; c < RATIO_COUNT; ++c) {
+                int px = x + TDX[c];
+                int py = y + TDY[c];
+                if (px >= 0 && px < width && py >= 0 && py < height) {
+                    bmp_to[py * width + px] += d * RATIO[c] / DENOMINATOR;
+                }
+            }
+        }
+    }
+    Image converted = {
+        .width = width,
+        .height = height,
+        .data = malloc(width * height)
+    };
+    if (converted.data == NULL) {
+        fprintf(stderr, "Failed memory allocation.\n");
+        exit(1);
+    }
+    for (int i = 0; i < width * height; ++i) {
+        converted.data[i] = bmp_to[i];
+    }
+    free(bmp_to);
+    return converted;
+}
+
+
 int main(int argc, char* argv[]) {
     char in_pgm_path[1024] = "lena_gray.pgm";
     char out_pgm_path[1024] = "out.pgm";
@@ -106,7 +160,12 @@ int main(int argc, char* argv[]) {
     }
 
     Image img = load_pgm(in_pgm_path);
-    save_pgm(&img, out_pgm_path);
+    Image converted = convert_error_diffusion(&img);
+
+    save_pgm(&converted, out_pgm_path);
+
+    destroy_image(&converted);
+    destroy_image(&img);
 
     return 0;
 }
